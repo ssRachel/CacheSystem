@@ -34,5 +34,56 @@ public:
     using NodePtr = std::shared_ptr<LruNodeType>;
     using NodeMap = std::unordered_map<Key, NodePtr>;
 
+
+    LruCache(int capacity)
+        : capacity_(capacity)
+    {
+        initialzeList();
+    }
+
+    ~LruCache() override = default;
+
+
+private:
+    void initialzeList()
+    {
+        dummyHead_ = std::make_shared<LruNodeType>(Key(), Value());
+        dummyTail_ = std::make_shared<LruNodeType>(Key(), Value());
+        dummyHead_->next_ = dummyTail_;
+        dummyTail_->prev_ = dummyHead_;
+    }
+
+    void removeNode(NodePtr node)
+    {
+        if(!node.prev_.expired() && node->next_)
+        {
+            auto prev = node->prev_.lock();
+            prev->next_ = node->next_;
+            node->next_->prev_ = prev;
+            node->next_ = nullptr;
+        }
+    }
+
+    void insertNode(NodePtr node)
+    {
+        node->next_ = dummyTail_;
+        node->prev_ = dummyTail_->prev_;
+        dummyTail_->prev_.lock()->next_ = node;
+        dummyTail_->prev_ = node; 
+    }
+
+    void evictLeastRecent()
+    {
+        NodePtr leastRecent = dummyHead_->next_;
+        removeNode(leastRecent);
+        nodemap_.erase(leastRecent->getKey());
+    }
+
+private:
+    int         capacity_; // 缓存容量
+    NodeMap     nodemap_; // key -> node
+    std::mutex  mutex_;
+    NodePtr     dummyHead_; // 虚拟头结点
+    NodePtr     dummyTail_;
     
 }
