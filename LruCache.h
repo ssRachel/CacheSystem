@@ -174,9 +174,124 @@ public:
 	    , historyList(std::make_unique<LruCache<Key, size_t>>(history_capacity))
 	    , k_(k)
     {}
+
+
+    Value get(Key key)
+    {
+	// 先尝试从主缓存获取数据
+    	Value value{};
+	bool inMainCache = LruCache<Key, Value>::get(key, value);
+
+	// 获取并更新访问历史计数
+	size_t historyCount = historyList_->get(key);
+	historyCount++;
+	historyList_->put(key, historyCount);
+
+	// 如果数据在主缓存中直接返回
+	if(inMainCache)
+	{
+	    return value;
+	}
 	
+	// 如果数据不在主缓存并且历史计数达到k_次
+	if(historyCount  >= k_)
+	{
+	    // 检查是否存在于历史数据列表中
+	    auto it = historyValueMap_.find(key);
+	    if(it !=  historyValueMap_.end())
+	    {
+		// 有历史值，将其添加到主缓存
+	    	Value storeValue = it->second;
+
+		// 删除历史记录
+		historyList_->remove(key);
+		historyValueMap_.erase(it);
+
+		LruCache<Key, Value>::put(key, storeValue);
+		return storeValue;
+	    }
+
+	    // 没有历史记录，无法添加到主缓存，返回默认值
+	
+	}
+
+	// 数据不在主缓存，历史记录达不到k_次，返回默认值
+	return value;
+    }
+
+
+    void put(Key key, Value value)
+    {
+    	// 判断主缓存是否存在数据
+	Value existingValue{};
+        bool inMainCache = LruCache<Key, Value>::get(key, existingValue);
+
+	// 如果存在就更新数据，然后返回
+	if(inMainCache)
+	{
+	    LruCache<Key, Value>::put(key,  value);
+	    return;
+	}
+    
+	// 获取并更新历史记录数据
+	size_t historyCount = historyList_->get(key);
+	historyCount++;
+	historyList_->put(key, historyCount);
+
+	historyValueMap_[key] = value;
+
+	// 如果历史计数达到k_次，删除历史记录，添加到主缓存
+	if(historyCount >= k_)
+	{
+	    historyList_->remove(key);
+	    historyValueMap_.erase(key);
+
+	    LruCache<Key, Value>::put(key, value);
+	}
+    
+    }
+
 private:
 	int 					k_; // 进入缓存队列的评判标准
 	std::unique_ptr<LruCache<Key, size_t>> 	historyList_; // 访问数据历史记录(value) 	
 	std::unordered_map<Key, Value> 		historyValueMap_; // 存储未达到k_次访问的数据值
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
