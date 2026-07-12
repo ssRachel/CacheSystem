@@ -259,6 +259,66 @@ private:
 
 
 
+templete<typename Key, typename Value>
+class HashLruCaches
+{
+public:
+    HashLruCaches(size_t capacity, int sliceNum)
+	    : capacity_(capacity)
+	    , sliceNum_(sliceNum > 0 ? sliceNum : std::thread::hardware_concurrency())
+    {
+        size_t sliceSize = std::ceil(capacity / static_cast<double>(sliceNum_));
+	for(int i=0; i<sliceSize; i++)
+	{
+	    lruSliceCaches_.emplace_back(new LruCache<Key, Value>(sliceSize));
+	}
+    }
+
+
+    void put(Key key, Value value)
+    {
+        
+    
+    }
+
+
+
+private:
+    size_t Hash(Key key)
+    {
+    	std::hash<Key> hashFunc;
+	return hashFunc(key);
+    }
+
+
+
+
+private:
+    size_t 						capacity_; // 总容量
+    int 						sliceNum_; // 切片数量
+    std::vector<std::unique_ptr<LruCache<Key, Value>>> 	lruSliceCaches_; // 切片Lru缓存
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
