@@ -277,10 +277,27 @@ public:
 
     void put(Key key, Value value)
     {
-        
+       size_t sliceIndex = hash(key) % sliceNum_;
+       lruSliceCache_[sliceIndex]->put(key, value);
     
     }
 
+
+    bool get(Key key, Value value)
+    {
+    	size_t sliceIndex = hash(key) % sliceNum_;
+	return lruSliceCaches_[sliceIndex]->get(key, value);
+    
+    }
+
+
+    Value get(Key key)
+    {
+    	Value value {};
+	memset(&value, 0, sizeof(value));
+	get(key, value);
+	return value;
+    }
 
 
 private:
